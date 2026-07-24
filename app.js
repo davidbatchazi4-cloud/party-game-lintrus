@@ -153,6 +153,12 @@ function wireHome() {
   $("btn-scan").addEventListener("click", openScanner);
   $("btn-scan-cancel").addEventListener("click", closeScanner);
   $("btn-copy-link").addEventListener("click", copyRoomLink);
+  $("btn-home-back").addEventListener("click", () => {
+    $("input-code").value = "";
+    hide($("home-invite"));
+    hide($("home-error"));
+    setJoinOnly(false);
+  });
   $("input-code").addEventListener("input", (e) => {
     e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, "");
   });
@@ -175,6 +181,15 @@ function inviteMessage(code) {
   const el = $("home-invite");
   el.textContent = "Partie " + code + " 🎉 — entre ton pseudo puis appuie sur « Rejoindre ».";
   show(el);
+  setJoinOnly(true);
+}
+
+// Quand on arrive par un QR code ou un lien d'invitation, on est là pour
+// rejoindre une partie précise : proposer d'en créer une n'aurait pas de sens.
+function setJoinOnly(on) {
+  (on ? hide : show)($("btn-create"));
+  (on ? hide : show)($("home-or"));
+  (on ? show : hide)($("btn-home-back"));
 }
 function homeError(msg) { const el = $("home-error"); el.textContent = msg; show(el); }
 function readName() {
@@ -418,6 +433,8 @@ function leaveRoom() {
   isHost = false; lastKey = ""; qrDrawnFor = "";
   clearTimeout(quizTimer); quizTimerKey = "";
   hide($("room-badge"));
+  hide($("home-invite"));
+  setJoinOnly(false); // on ressort d'une partie : l'accueil redevient complet
   showScreen("screen-home");
 }
 

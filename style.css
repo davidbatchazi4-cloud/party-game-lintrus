@@ -224,6 +224,20 @@ input:focus { border-color: var(--primary); }
   font-size: 0.95rem;
 }
 
+/* Lien discret pour sortir du mode « rejoindre seulement » */
+.link-btn {
+  display: block;
+  margin: 1.2rem auto 0;
+  background: none;
+  border: none;
+  color: var(--text-soft);
+  font-size: 0.85rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.link-btn:hover { color: var(--text); }
+
 /* ===== Listes de joueurs ===== */
 .players-list { list-style: none; margin: 0.5rem 0; }
 .players-list li {
