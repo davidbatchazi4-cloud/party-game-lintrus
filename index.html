@@ -34,12 +34,16 @@
         <h1>🎉 Party Game</h1>
         <p class="tagline">Plein de jeux à jouer à plusieurs, chacun sur son téléphone.</p>
 
+        <p id="home-invite" class="invite hidden"></p>
+
         <label>Ton pseudo</label>
         <input id="input-name" type="text" maxlength="14" placeholder="Ex : David" />
 
         <button id="btn-create" class="btn btn-primary">Créer une partie</button>
 
         <div class="divider"><span>ou</span></div>
+
+        <button id="btn-scan" class="btn btn-outline">📷 Scanner un QR code</button>
 
         <label>Rejoindre avec un code</label>
         <input id="input-code" type="text" maxlength="4" placeholder="ABCD" class="code-input" />
@@ -55,6 +59,13 @@
         <p class="muted">Code de la partie</p>
         <div id="lobby-code" class="big-code">----</div>
         <p class="muted small">Partage ce code avec tes amis 📱</p>
+
+        <!-- QR code à scanner pour rejoindre -->
+        <div class="qr-box">
+          <canvas id="qr-canvas" class="qr-canvas"></canvas>
+          <p class="muted small">…ou fais scanner ce QR code 📷</p>
+          <button id="btn-copy-link" class="btn btn-ghost">🔗 Copier le lien</button>
+        </div>
 
         <h3>🏆 Classement</h3>
         <ul id="lobby-players" class="players-list"></ul>
@@ -317,9 +328,22 @@
 
   </div>
 
+  <!-- ========== Scanner de QR code (plein écran) ========== -->
+  <div id="scanner" class="scanner hidden">
+    <div class="scanner-view">
+      <video id="scanner-video" playsinline muted autoplay></video>
+      <div class="scanner-frame"></div>
+    </div>
+    <p id="scanner-msg" class="scanner-msg">Vise le QR code de la partie 🎯</p>
+    <button id="btn-scan-cancel" class="btn btn-outline scanner-cancel">Annuler</button>
+  </div>
+
   <!-- ===== Firebase ===== -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+  <!-- ===== Librairie QR code (générateur, local) ===== -->
+  <script src="vendor/qrcode-generator.js"></script>
 
   <!-- ===== Notre code ===== -->
   <script src="config.js"></script>

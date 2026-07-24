@@ -64,6 +64,23 @@ Pour que les téléphones y accèdent, le jeu doit être **hébergé en ligne**
 
 Ensuite, chacun ouvre le lien sur son téléphone et entre le code. 🎉
 
+### 📷 Rejoindre en scannant un QR code
+
+Dans le salon, un **QR code** s'affiche sous le code de la partie.
+Les autres joueurs ont deux façons de l'utiliser :
+
+- **Depuis le jeu** : bouton **« 📷 Scanner un QR code »** sur l'écran d'accueil
+  → la caméra s'ouvre, ils visent l'écran de l'hôte, le code se remplit tout seul
+  (et s'ils ont déjà tapé leur pseudo, ils entrent directement dans la partie).
+- **Depuis l'appareil photo du téléphone** : le QR contient le lien du jeu
+  (`…/?code=ABCD`) → il ouvre le jeu avec le code déjà rempli.
+
+Le bouton **« 🔗 Copier le lien »** fait la même chose pour WhatsApp / SMS.
+
+> ⚠️ La caméra ne fonctionne qu'en **https** (Firebase Hosting, Netlify…) ou sur
+> `localhost` — c'est une règle des navigateurs. En ouvrant `index.html` en
+> double-clic (`file://`), le scan est indisponible : on entre le code à la main.
+
 ---
 
 ## 📁 Fichiers du projet
@@ -75,6 +92,7 @@ Ensuite, chacun ouvre le lien sur son téléphone et entre le code. 🎉
 | `app.js`       | La logique du jeu                                |
 | `words.js`     | La liste des mots secrets (modifiable)           |
 | `config.js`    | **Ta config Firebase** (à remplir)               |
+| `vendor/`      | Librairies QR code (création + lecture caméra)   |
 
 ---
 

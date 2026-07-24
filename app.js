@@ -150,9 +150,31 @@ function wireAccordion() {
 function wireHome() {
   $("btn-create").addEventListener("click", createRoom);
   $("btn-join").addEventListener("click", joinRoom);
+  $("btn-scan").addEventListener("click", openScanner);
+  $("btn-scan-cancel").addEventListener("click", closeScanner);
+  $("btn-copy-link").addEventListener("click", copyRoomLink);
   $("input-code").addEventListener("input", (e) => {
     e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, "");
   });
+  prefillFromUrl();
+}
+
+// Si on arrive via un lien / QR code (…?code=ABCD), on pré-remplit le code
+function prefillFromUrl() {
+  const params = new URLSearchParams(location.search);
+  const code = codeFromText(params.get("code") || location.hash);
+  if (!code) return;
+  $("input-code").value = code;
+  inviteMessage(code);
+  $("input-name").focus();
+  // On nettoie l'URL pour ne pas garder un vieux code en mémoire
+  try { history.replaceState({}, "", location.pathname); } catch (e) { /* file:// */ }
+}
+
+function inviteMessage(code) {
+  const el = $("home-invite");
+  el.textContent = "Partie " + code + " 🎉 — entre ton pseudo puis appuie sur « Rejoindre ».";
+  show(el);
 }
 function homeError(msg) { const el = $("home-error"); el.textContent = msg; show(el); }
 function readName() {
@@ -191,6 +213,180 @@ async function joinRoom() {
 }
 
 // =====================================================================
+//  QR CODE — partager le salon
+// =====================================================================
+// Lien d'invitation : la même page, avec le code dans l'URL
+// (en local, ouvert en file://, on met simplement le code dans le QR)
+function roomLink(code) {
+  if (location.protocol === "file:") return code;
+  return location.origin + location.pathname + "?code=" + code;
+}
+
+// Extrait un code de partie depuis un texte (lien complet ou 4 lettres)
+function codeFromText(text) {
+  if (!text) return null;
+  const s = String(text).trim();
+  const m = s.match(/[?&#]code=([A-Za-z]{4})(?![A-Za-z])/);
+  if (m) return m[1].toUpperCase();
+  const raw = s.toUpperCase().replace(/[^A-Z]/g, "");
+  return raw.length === 4 ? raw : null;
+}
+
+let qrDrawnFor = "";
+// Dessine le QR code du salon dans le canvas (une seule fois par code)
+function drawRoomQR(code) {
+  const canvas = $("qr-canvas");
+  if (!canvas || qrDrawnFor === code) return;
+  if (typeof qrcode === "undefined") { hide(canvas); return; }
+  const qr = qrcode(0, "M");           // 0 = taille auto, M = correction moyenne
+  qr.addData(roomLink(code));
+  qr.make();
+
+  const n = qr.getModuleCount();
+  const quiet = 2;                      // marge blanche (en modules)
+  const cell = Math.max(3, Math.floor(240 / (n + quiet * 2)));
+  const size = cell * (n + quiet * 2);
+  canvas.width = size;
+  canvas.height = size;
+
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = "#12101e";
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      if (qr.isDark(r, c)) {
+        ctx.fillRect((c + quiet) * cell, (r + quiet) * cell, cell, cell);
+      }
+    }
+  }
+  show(canvas);
+  qrDrawnFor = code;
+}
+
+// Copie le lien d'invitation dans le presse-papier
+async function copyRoomLink() {
+  if (!roomCode) return;
+  const btn = $("btn-copy-link");
+  const link = roomLink(roomCode);
+  try {
+    await navigator.clipboard.writeText(link);
+    btn.textContent = "✅ Lien copié !";
+  } catch (e) {
+    // Navigateurs sans presse-papier : on affiche le lien à recopier
+    btn.textContent = link;
+  }
+  setTimeout(() => { btn.textContent = "🔗 Copier le lien"; }, 2500);
+}
+
+// =====================================================================
+//  SCANNER UN QR CODE (caméra)
+// =====================================================================
+let scanStream = null;      // flux vidéo en cours
+let scanDetector = null;    // BarcodeDetector natif (si dispo)
+let scanTimer = null;       // boucle d'analyse
+let scanCanvas = null;      // canvas utilisé par jsQR
+let jsqrLoading = null;
+
+function scanMsg(txt) { $("scanner-msg").textContent = txt; }
+
+// jsQR n'est chargé que si le navigateur n'a pas BarcodeDetector (iOS…)
+function loadJsQR() {
+  if (window.jsQR) return Promise.resolve();
+  if (!jsqrLoading) {
+    jsqrLoading = new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = "vendor/jsQR.js";
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+  return jsqrLoading;
+}
+
+async function openScanner() {
+  show($("scanner"));
+  scanMsg("Ouverture de la caméra…");
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    scanMsg("Le scan a besoin d'une connexion sécurisée (https). Utilise le code à 4 lettres 🙂");
+    return;
+  }
+  try {
+    scanStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
+      audio: false
+    });
+  } catch (e) {
+    scanMsg("Caméra indisponible — autorise l'accès dans ton navigateur, ou entre le code à 4 lettres.");
+    return;
+  }
+
+  const video = $("scanner-video");
+  video.srcObject = scanStream;
+  try { await video.play(); } catch (e) { /* certains navigateurs jouent tout seuls */ }
+
+  if ("BarcodeDetector" in window) {
+    try { scanDetector = new BarcodeDetector({ formats: ["qr_code"] }); }
+    catch (e) { scanDetector = null; }
+  }
+  if (!scanDetector) {
+    try { await loadJsQR(); }
+    catch (e) { scanMsg("Impossible de charger le lecteur de QR code 😕"); return; }
+  }
+
+  scanMsg("Vise le QR code de la partie 🎯");
+  scanTimer = setInterval(scanTick, 150);
+}
+
+async function scanTick() {
+  const video = $("scanner-video");
+  if (!scanStream || !video.videoWidth) return;
+  let text = null;
+  try {
+    if (scanDetector) {
+      const codes = await scanDetector.detect(video);
+      if (codes && codes.length) text = codes[0].rawValue;
+    } else if (window.jsQR) {
+      if (!scanCanvas) scanCanvas = document.createElement("canvas");
+      const w = 400;
+      const h = Math.round(video.videoHeight * (w / video.videoWidth));
+      scanCanvas.width = w; scanCanvas.height = h;
+      const ctx = scanCanvas.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(video, 0, 0, w, h);
+      const img = ctx.getImageData(0, 0, w, h);
+      const res = jsQR(img.data, w, h, { inversionAttempts: "dontInvert" });
+      if (res) text = res.data;
+    }
+  } catch (e) { return; } // image pas prête : on réessaie au tour suivant
+  if (text) onScanned(text);
+}
+
+function onScanned(text) {
+  const code = codeFromText(text);
+  if (!code) { scanMsg("Ce QR code n'est pas celui d'une partie 🤔"); return; }
+  closeScanner();
+  soundGood();
+  $("input-code").value = code;
+  hide($("home-error"));
+  const name = $("input-name").value.trim();
+  if (name) joinRoom();
+  else { inviteMessage(code); $("input-name").focus(); }
+}
+
+function closeScanner() {
+  clearInterval(scanTimer); scanTimer = null;
+  scanDetector = null;
+  if (scanStream) {
+    scanStream.getTracks().forEach((t) => t.stop());
+    scanStream = null;
+  }
+  $("scanner-video").srcObject = null;
+  hide($("scanner"));
+}
+
+// =====================================================================
 //  ENTRER / QUITTER UNE PARTIE
 // =====================================================================
 async function enterRoom(code) {
@@ -202,6 +398,8 @@ async function enterRoom(code) {
 
   $("room-badge").textContent = "Salon " + code;
   show($("room-badge"));
+  hide($("home-invite"));
+  hide($("home-error"));
 
   roomRef.on("value", (snap) => {
     currentRoom = snap.val();
@@ -217,7 +415,7 @@ function leaveRoom() {
     roomRef.child("players/" + myId).remove();
   }
   roomRef = null; roomCode = null; currentRoom = null;
-  isHost = false; lastKey = "";
+  isHost = false; lastKey = ""; qrDrawnFor = "";
   clearTimeout(quizTimer); quizTimerKey = "";
   hide($("room-badge"));
   showScreen("screen-home");
@@ -292,6 +490,7 @@ function fillScoreList(ulId, players, extraPoints) {
 function renderLobby(room) {
   showScreen("screen-lobby");
   $("lobby-code").textContent = roomCode;
+  drawRoomQR(roomCode);
   const players = room.players || {};
   fillScoreList("lobby-players", players);
   const n = Object.keys(players).length;
