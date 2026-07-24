@@ -1,0 +1,319 @@
+/* ===== Base (pensé pour téléphone d'abord) ===== */
+:root {
+  --bg: #12101e;
+  --bg2: #1c1830;
+  --surface: #241f3d;
+  --primary: #a855f7;
+  --primary-dark: #7c3aed;
+  --accent: #f43f5e;
+  --text: #f4f2ff;
+  --text-soft: #b0a8cc;
+  --border: #362f57;
+  --radius: 16px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: radial-gradient(circle at top, var(--bg2), var(--bg));
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.app { max-width: 480px; margin: 0 auto; padding: 0 1rem 2rem; min-height: 100vh; }
+
+/* ===== Bandeau ===== */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 0.2rem;
+}
+.brand { font-size: 1.3rem; font-weight: 800; }
+.topbar-right { display: flex; align-items: center; gap: 0.5rem; }
+.room-badge {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+.icon-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 38px; height: 38px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+/* ===== Avatars ===== */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.8rem;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.players-list .pl { display: flex; align-items: center; }
+
+/* ===== Écrans & cartes ===== */
+.screen { animation: fade 0.25s ease; }
+@keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.6rem 1.3rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+}
+.center { text-align: center; }
+
+h1 { font-size: 2.2rem; margin-bottom: 0.3rem; }
+h2 { font-size: 1.5rem; margin-bottom: 0.6rem; }
+h3 { font-size: 1.1rem; margin: 1.2rem 0 0.6rem; }
+.tagline { color: var(--text-soft); margin-bottom: 1.5rem; }
+.muted { color: var(--text-soft); }
+.small { font-size: 0.85rem; }
+
+/* ===== Champs & boutons ===== */
+label {
+  display: block;
+  text-align: left;
+  font-size: 0.85rem;
+  color: var(--text-soft);
+  margin: 1rem 0 0.4rem;
+}
+
+input {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  font-size: 1.1rem;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s;
+}
+input:focus { border-color: var(--primary); }
+
+.code-input {
+  text-align: center;
+  letter-spacing: 0.5rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.btn {
+  display: block;
+  width: 100%;
+  padding: 1rem;
+  margin-top: 0.9rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.15s, opacity 0.2s;
+}
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; }
+.btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--text); }
+.btn-ghost { background: transparent; color: var(--text-soft); font-weight: 500; margin-top: 1.5rem; }
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 1.4rem 0 0.4rem;
+  color: var(--text-soft);
+  font-size: 0.85rem;
+}
+.divider::before, .divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ===== Code de la partie ===== */
+.big-code {
+  font-size: 3.5rem;
+  font-weight: 900;
+  letter-spacing: 0.5rem;
+  color: var(--primary);
+  margin: 0.3rem 0;
+}
+
+/* ===== Listes de joueurs ===== */
+.players-list { list-style: none; margin: 0.5rem 0; }
+.players-list li {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  text-align: left;
+}
+.players-list .score { color: var(--primary); font-weight: 700; white-space: nowrap; }
+.vote-choices li { background: transparent; border: none; padding: 0; display: block; }
+.vote-btn { margin-top: 0.5rem; }
+
+/* ===== Menu des jeux & réglages ===== */
+.game-choice { text-align: center; }
+
+.game-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.9rem;
+  margin-bottom: 1rem;
+}
+.game-card-head {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 1.2rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.3rem 0.2rem;
+}
+.chevron { transition: transform 0.2s; color: var(--text-soft); }
+.settings.open + .game-choice { margin-top: 0.6rem; }
+.settings {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  text-align: left;
+}
+.settings.open { max-height: 800px; }
+
+.settings label {
+  margin: 0.7rem 0 0.3rem;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+select {
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  font-size: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+}
+select:focus { border-color: var(--primary); }
+
+/* ===== Minuteur du quiz ===== */
+.quiz-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.3rem;
+}
+.timer {
+  font-weight: 800;
+  font-size: 1rem;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 0.25rem 0.7rem;
+}
+.timer.urgent { color: var(--accent); border-color: var(--accent); animation: pulse 0.6s infinite; }
+@keyframes pulse { 50% { opacity: 0.5; } }
+
+/* ===== Quiz ===== */
+.quiz-options { list-style: none; margin: 1rem 0; }
+.quiz-options li { margin: 0; }
+.quiz-opt { text-align: center; }
+
+/* ===== Répliques ===== */
+.prompt-box {
+  background: var(--bg2);
+  border: 2px solid var(--primary);
+  border-radius: var(--radius);
+  padding: 1.2rem;
+  margin: 1rem 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+#rep-results li { text-align: left; }
+#rep-results .ans { font-weight: 700; }
+#rep-results .meta { color: var(--primary); font-weight: 700; }
+#rep-results .who { color: var(--text-soft); font-size: 0.85rem; }
+
+/* ===== Podium (classement final) ===== */
+.podium li:nth-child(1) { border-color: gold; box-shadow: 0 0 18px rgba(255, 215, 0, 0.25); }
+.podium li:nth-child(2) { border-color: silver; }
+.podium li:nth-child(3) { border-color: #cd7f32; }
+
+/* ===== Mot secret / rôle ===== */
+.secret-word {
+  font-size: 2.4rem;
+  font-weight: 900;
+  color: var(--primary);
+  background: var(--bg2);
+  border: 2px dashed var(--primary);
+  border-radius: var(--radius);
+  padding: 1.4rem;
+  margin: 1rem 0;
+}
+.secret-word.is-intrus { color: var(--accent); border-color: var(--accent); }
+
+/* ===== Indices ===== */
+.clue-list { list-style: none; margin-top: 1rem; text-align: left; }
+.clue-list li {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.6rem 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+/* ===== Résultat ===== */
+.reveal-emoji { font-size: 4rem; margin: 0.5rem 0; animation: pop-in 0.5s cubic-bezier(0.17, 0.89, 0.32, 1.28); }
+@keyframes pop-in { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.reveal-text { font-size: 1.1rem; margin-bottom: 1rem; }
+.reveal-detail {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+.reveal-detail p { margin: 0.3rem 0; }
+
+/* ===== Divers ===== */
+.error { color: var(--accent); margin-top: 1rem; font-weight: 600; }
+.hidden { display: none !important; }
+code {
+  background: var(--bg2);
+  padding: 0.15rem 0.4rem;
+  border-radius: 6px;
+  font-size: 0.9em;
+}

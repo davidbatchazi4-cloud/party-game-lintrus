@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Party Game 🎉</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="app">
+
+    <!-- ========== Bandeau haut ========== -->
+    <header class="topbar">
+      <span class="brand">🎉 Party Game</span>
+      <div class="topbar-right">
+        <span id="room-badge" class="room-badge hidden"></span>
+        <button id="btn-sound" class="icon-btn" aria-label="Son" title="Couper / activer le son">🔊</button>
+      </div>
+    </header>
+
+    <!-- ========== Message si Firebase pas configuré ========== -->
+    <section id="screen-setup" class="screen hidden">
+      <div class="card center">
+        <h2>⚙️ Configuration requise</h2>
+        <p>Le fichier <code>config.js</code> n'est pas encore rempli.</p>
+        <p>Ouvre le <strong>README.md</strong> et suis les étapes (~5 min).</p>
+      </div>
+    </section>
+
+    <!-- ========== Écran d'accueil ========== -->
+    <section id="screen-home" class="screen hidden">
+      <div class="card center">
+        <h1>🎉 Party Game</h1>
+        <p class="tagline">Plein de jeux à jouer à plusieurs, chacun sur son téléphone.</p>
+
+        <label>Ton pseudo</label>
+        <input id="input-name" type="text" maxlength="14" placeholder="Ex : David" />
+
+        <button id="btn-create" class="btn btn-primary">Créer une partie</button>
+
+        <div class="divider"><span>ou</span></div>
+
+        <label>Rejoindre avec un code</label>
+        <input id="input-code" type="text" maxlength="4" placeholder="ABCD" class="code-input" />
+        <button id="btn-join" class="btn btn-outline">Rejoindre</button>
+
+        <p id="home-error" class="error hidden"></p>
+      </div>
+    </section>
+
+    <!-- ========== HUB / Salon (menu des jeux) ========== -->
+    <section id="screen-lobby" class="screen hidden">
+      <div class="card center">
+        <p class="muted">Code de la partie</p>
+        <div id="lobby-code" class="big-code">----</div>
+        <p class="muted small">Partage ce code avec tes amis 📱</p>
+
+        <h3>🏆 Classement</h3>
+        <ul id="lobby-players" class="players-list"></ul>
+
+        <!-- Menu des jeux + réglages (visible par l'hôte) -->
+        <div id="game-menu" class="hidden">
+          <h3>Choisis un jeu à lancer</h3>
+
+          <!-- ===== Carte L'Intrus ===== -->
+          <div class="game-card">
+            <button type="button" class="game-card-head" data-toggle="cfg-intrus">🎭 L'Intrus <span class="chevron">▾</span></button>
+            <div id="cfg-intrus" class="settings">
+              <label>Thème des mots</label>
+              <select id="set-intrus-theme"></select>
+
+              <label>Nombre d'intrus</label>
+              <select id="set-intrus-count">
+                <option value="1">1 intrus</option>
+                <option value="2">2 intrus</option>
+              </select>
+
+              <label>Type d'indice</label>
+              <select id="set-intrus-clue">
+                <option value="1mot">Un seul mot</option>
+                <option value="libre">Libre (mots ou phrase courte)</option>
+              </select>
+
+              <label>Manches avant fin de partie</label>
+              <select id="set-intrus-rounds">
+                <option value="1">1 manche</option>
+                <option value="3" selected>3 manches</option>
+                <option value="5">5 manches</option>
+              </select>
+            </div>
+            <button class="btn btn-primary game-choice" data-game="intrus">Lancer L'Intrus</button>
+          </div>
+
+          <!-- ===== Carte Quiz ===== -->
+          <div class="game-card">
+            <button type="button" class="game-card-head" data-toggle="cfg-quiz">🧠 Quiz <span class="chevron">▾</span></button>
+            <div id="cfg-quiz" class="settings">
+              <label>Catégorie</label>
+              <select id="set-quiz-cat"></select>
+
+              <label>Difficulté</label>
+              <select id="set-quiz-diff">
+                <option value="all">Toutes</option>
+                <option value="facile">Facile</option>
+                <option value="moyen">Moyen</option>
+                <option value="difficile">Difficile</option>
+              </select>
+
+              <label>Nombre de questions</label>
+              <select id="set-quiz-count">
+                <option value="3">3 questions</option>
+                <option value="5" selected>5 questions</option>
+                <option value="10">10 questions</option>
+                <option value="15">15 questions</option>
+              </select>
+
+              <label>Temps par question</label>
+              <select id="set-quiz-time">
+                <option value="0">Illimité</option>
+                <option value="10">10 secondes</option>
+                <option value="20" selected>20 secondes</option>
+                <option value="30">30 secondes</option>
+              </select>
+
+              <label>Bonus de rapidité</label>
+              <select id="set-quiz-bonus">
+                <option value="1">Oui (plus vite = plus de points)</option>
+                <option value="0">Non (points fixes)</option>
+              </select>
+            </div>
+            <button class="btn btn-primary game-choice" data-game="quiz">Lancer le Quiz</button>
+          </div>
+
+          <!-- ===== Carte Répliques ===== -->
+          <div class="game-card">
+            <button type="button" class="game-card-head" data-toggle="cfg-rep">🃏 Répliques <span class="chevron">▾</span></button>
+            <div id="cfg-rep" class="settings">
+              <label>Nombre de manches</label>
+              <select id="set-rep-rounds">
+                <option value="2">2 manches</option>
+                <option value="3" selected>3 manches</option>
+                <option value="5">5 manches</option>
+              </select>
+            </div>
+            <button class="btn btn-primary game-choice" data-game="repliques">Lancer Répliques</button>
+          </div>
+
+          <!-- ===== Carte Loup-Garou ===== -->
+          <div class="game-card">
+            <button type="button" class="game-card-head" data-toggle="cfg-loup">🐺 Loup-Garou <span class="chevron">▾</span></button>
+            <div id="cfg-loup" class="settings">
+              <label>Nombre de loups</label>
+              <select id="set-loup-wolves">
+                <option value="1">1 loup</option>
+                <option value="2" selected>2 loups</option>
+              </select>
+              <label>Voyante</label>
+              <select id="set-loup-seer">
+                <option value="1" selected>Oui (voit un rôle par nuit)</option>
+                <option value="0">Non</option>
+              </select>
+            </div>
+            <button class="btn btn-primary game-choice" data-game="loup">Lancer Loup-Garou</button>
+          </div>
+
+          <p id="lobby-hint" class="muted small"></p>
+        </div>
+
+        <p id="lobby-wait" class="muted small hidden">En attente que l'hôte choisisse un jeu...</p>
+        <button id="btn-leave" class="btn btn-ghost">Quitter</button>
+      </div>
+    </section>
+
+    <!-- ================= L'INTRUS ================= -->
+
+    <!-- Phase : Ton rôle -->
+    <section id="screen-role" class="screen hidden">
+      <div class="card center">
+        <h2>Ton mot secret</h2>
+        <div id="role-word" class="secret-word">...</div>
+        <p id="role-hint" class="muted"></p>
+        <button id="btn-role-ok" class="btn btn-primary">J'ai compris</button>
+      </div>
+    </section>
+
+    <!-- Phase : Indices -->
+    <section id="screen-clue" class="screen hidden">
+      <div class="card center">
+        <h2>💬 Donne ton indice</h2>
+        <p id="clue-instr" class="muted">Écris <strong>un seul mot</strong> lié au mot secret (sans le dire !).</p>
+        <input id="input-clue" type="text" maxlength="20" placeholder="Un mot..." />
+        <button id="btn-clue" class="btn btn-primary">Envoyer</button>
+        <p id="clue-waiting" class="muted hidden">✅ Envoyé ! En attente des autres joueurs...</p>
+        <ul id="clue-list" class="clue-list"></ul>
+      </div>
+    </section>
+
+    <!-- Phase : Vote -->
+    <section id="screen-vote" class="screen hidden">
+      <div class="card center">
+        <h2>🗳️ Qui est l'intrus ?</h2>
+        <p class="muted">Voici les indices de chacun. Vote pour le suspect !</p>
+        <ul id="vote-clues" class="clue-list"></ul>
+        <h3>Ton vote</h3>
+        <ul id="vote-list" class="players-list vote-choices"></ul>
+        <p id="vote-waiting" class="muted hidden">✅ Vote enregistré ! En attente des autres...</p>
+      </div>
+    </section>
+
+    <!-- Phase : Résultat de L'Intrus -->
+    <section id="screen-reveal" class="screen hidden">
+      <div class="card center">
+        <h2 id="reveal-title">Résultat</h2>
+        <div id="reveal-emoji" class="reveal-emoji">🎭</div>
+        <p id="reveal-text" class="reveal-text"></p>
+        <div class="reveal-detail">
+          <p>Le mot secret était : <strong id="reveal-word"></strong></p>
+          <p>L'intrus était : <strong id="reveal-intrus"></strong></p>
+        </div>
+        <button id="btn-menu-1" class="btn btn-primary hidden">Retour au menu</button>
+        <p id="reveal-hint" class="muted small"></p>
+      </div>
+    </section>
+
+    <!-- ================= QUIZ ================= -->
+
+    <!-- Phase : Question -->
+    <section id="screen-quiz" class="screen hidden">
+      <div class="card center">
+        <div class="quiz-topline">
+          <p id="quiz-progress" class="muted small"></p>
+          <span id="quiz-timer" class="timer hidden">⏱️ --</span>
+        </div>
+        <h2 id="quiz-question">Question</h2>
+        <ul id="quiz-options" class="quiz-options"></ul>
+        <p id="quiz-waiting" class="muted hidden">✅ Réponse envoyée ! En attente des autres...</p>
+      </div>
+    </section>
+
+    <!-- Phase : Correction -->
+    <section id="screen-quiz-reveal" class="screen hidden">
+      <div class="card center">
+        <h2>Correction</h2>
+        <p class="muted">La bonne réponse était :</p>
+        <div id="quiz-answer" class="secret-word">...</div>
+        <p id="quiz-points" class="reveal-text"></p>
+        <h3>🏆 Classement</h3>
+        <ul id="quiz-scores" class="players-list"></ul>
+        <button id="btn-quiz-next" class="btn btn-primary hidden">Suite</button>
+        <p id="quiz-reveal-hint" class="muted small"></p>
+      </div>
+    </section>
+
+    <!-- ================= RÉPLIQUES ================= -->
+
+    <!-- Phase : Écrire sa réponse -->
+    <section id="screen-rep-answer" class="screen hidden">
+      <div class="card center">
+        <p id="rep-progress" class="muted small"></p>
+        <h2>🃏 À toi d'être drôle !</h2>
+        <div id="rep-prompt" class="prompt-box">...</div>
+        <input id="input-rep" type="text" maxlength="60" placeholder="Ta réponse..." />
+        <button id="btn-rep-send" class="btn btn-primary">Envoyer</button>
+        <p id="rep-answer-waiting" class="muted hidden">✅ Envoyé ! En attente des autres...</p>
+      </div>
+    </section>
+
+    <!-- Phase : Voter -->
+    <section id="screen-rep-vote" class="screen hidden">
+      <div class="card center">
+        <h2>🗳️ Vote pour la meilleure</h2>
+        <div id="rep-prompt-vote" class="prompt-box">...</div>
+        <ul id="rep-vote-list" class="players-list vote-choices"></ul>
+        <p id="rep-vote-waiting" class="muted hidden">✅ Vote enregistré ! En attente des autres...</p>
+      </div>
+    </section>
+
+    <!-- Phase : Résultats de la manche -->
+    <section id="screen-rep-reveal" class="screen hidden">
+      <div class="card center">
+        <h2>Résultats de la manche</h2>
+        <ul id="rep-results" class="clue-list"></ul>
+        <h3>🏆 Classement</h3>
+        <ul id="rep-scores" class="players-list"></ul>
+        <button id="btn-rep-next" class="btn btn-primary hidden">Suite</button>
+        <p id="rep-reveal-hint" class="muted small"></p>
+      </div>
+    </section>
+
+    <!-- ================= LOUP-GAROU ================= -->
+    <section id="screen-loup" class="screen hidden">
+      <div class="card center">
+        <div id="loup-emoji" class="reveal-emoji"></div>
+        <h2 id="loup-title"></h2>
+        <div id="loup-role-box" class="secret-word hidden"></div>
+        <p id="loup-text" class="muted"></p>
+        <p id="loup-mates" class="reveal-text hidden"></p>
+        <ul id="loup-list" class="players-list vote-choices"></ul>
+        <p id="loup-info" class="reveal-text"></p>
+        <ul id="loup-alive" class="players-list hidden"></ul>
+        <button id="loup-host-btn" class="btn btn-primary hidden"></button>
+        <p id="loup-wait" class="muted small hidden"></p>
+      </div>
+    </section>
+
+    <!-- Phase : Fin du quiz / répliques -->
+    <section id="screen-final" class="screen hidden">
+      <div class="card center">
+        <h2 id="final-title">🏆 Fin de la partie !</h2>
+        <div class="reveal-emoji">🥳</div>
+        <ul id="final-scores" class="players-list podium"></ul>
+        <button id="btn-menu-2" class="btn btn-primary hidden">Retour au menu</button>
+        <p id="final-hint" class="muted small"></p>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ===== Firebase ===== -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+  <!-- ===== Notre code ===== -->
+  <script src="config.js"></script>
+  <script src="words.js"></script>
+  <script src="quiz.js"></script>
+  <script src="prompts.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
