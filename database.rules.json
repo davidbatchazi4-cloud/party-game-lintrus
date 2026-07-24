@@ -1,0 +1,32 @@
+{
+  "rules": {
+    // Racine verrouillée : impossible de lister ou d'effacer toute la base.
+    ".read": false,
+    ".write": false,
+
+    "rooms": {
+      // Pas de lecture/écriture sur "rooms" lui-même :
+      // on ne peut pas énumérer les salons ni tous les supprimer d'un coup.
+      "$code": {
+        // Il faut connaître un code de salon valide (4 lettres, sans I ni O).
+        ".read": "$code.matches(/^[A-HJ-NP-Z]{4}$/)",
+
+        // Création : le salon doit avoir la bonne forme dès le départ.
+        // Ensuite, toute modification est permise aux joueurs du salon.
+        ".write": "$code.matches(/^[A-HJ-NP-Z]{4}$/) && (data.exists() || newData.hasChildren(['status', 'hostId', 'createdAt']))",
+
+        "status":    { ".validate": "newData.isString() && newData.val().length <= 24" },
+        "hostId":    { ".validate": "newData.isString() && newData.val().length <= 40" },
+        "createdAt": { ".validate": "newData.isNumber()" },
+
+        "players": {
+          "$pid": {
+            "name":   { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 24" },
+            "score":  { ".validate": "newData.isNumber()" },
+            "$other": { ".validate": false }
+          }
+        }
+      }
+    }
+  }
+}
