@@ -62,9 +62,11 @@ function soundForPhase(room) {
   if (room.status === "lobby" || !room.game) return;
   const g = room.game;
   const p = g.phase;
+  // L'hôte ne joue pas : pas de son « gagné/perdu » qui ne le concerne pas.
+  const amPlayer = !!(room.players || {})[myId];
   if (g.name === "quiz") {
     if (p === "question") soundPop();
-    else if (p === "reveal") (g.lastPoints && g.lastPoints[myId] > 0) ? soundGood() : soundBad();
+    else if (p === "reveal") !amPlayer ? soundReveal() : (g.lastPoints && g.lastPoints[myId] > 0) ? soundGood() : soundBad();
     else if (p === "final") soundReveal();
   } else if (g.name === "intrus") {
     if (p === "clue" || p === "vote") soundPop();
@@ -75,7 +77,10 @@ function soundForPhase(room) {
   } else if (g.name === "loup") {
     if (p === "roleReveal" || p === "dayVote") soundPop();
     else if (p === "dayReveal" || p === "dayResult") soundReveal();
-    else if (p === "over") { const won = (g.winner === "loups") === (g.roles[myId] === "loup"); won ? soundGood() : soundBad(); }
+    else if (p === "over") {
+      if (!amPlayer) soundReveal();
+      else { const won = (g.winner === "loups") === ((g.roles || {})[myId] === "loup"); won ? soundGood() : soundBad(); }
+    }
   }
 }
 
@@ -407,9 +412,13 @@ function closeScanner() {
 async function enterRoom(code) {
   roomCode = code;
   roomRef = db.ref("rooms/" + code);
-  const playerRef = roomRef.child("players/" + myId);
-  await playerRef.set({ name: myName, score: 0 });
-  playerRef.onDisconnect().remove();
+  // L'hôte est le maître du jeu : il orchestre la partie mais n'y participe pas.
+  // Il n'apparaît donc ni dans les joueurs, ni dans les scores, ni dans les votes.
+  if (!isHost) {
+    const playerRef = roomRef.child("players/" + myId);
+    await playerRef.set({ name: myName, score: 0 });
+    playerRef.onDisconnect().remove();
+  }
 
   $("room-badge").textContent = "Salon " + code;
   show($("room-badge"));
@@ -455,6 +464,15 @@ function render(room) {
   if (room.status === "lobby" || !room.game) { renderLobby(room); return; }
 
   const g = room.game;
+
+  // L'hôte ne joue pas : pendant que les joueurs saisissent quelque chose, on lui
+  // montre l'avancement plutôt qu'un formulaire qui ne le concerne pas. Les écrans
+  // de résultat, eux, lui restent utiles tels quels (ils portent ses boutons).
+  if (isHost && MASTER_PHASES[g.name] && MASTER_PHASES[g.name][g.phase]) {
+    renderMaster(room);
+    return;
+  }
+
   if (g.name === "intrus") {
     if (g.phase === "clue") { roleAck ? renderClue(room) : renderRole(room); }
     else if (g.phase === "vote") { renderVote(room); }
@@ -471,6 +489,40 @@ function render(room) {
   } else if (g.name === "loup") {
     renderLoup(room);
   }
+}
+
+// Phases pendant lesquelles l'hôte n'a rien à faire qu'attendre les joueurs.
+// Pour chacune : emoji, titre, et le champ du jeu qui dit qui a déjà répondu.
+const MASTER_PHASES = {
+  intrus: {
+    clue: ["💬", "Les joueurs écrivent leur indice", "clues"],
+    vote: ["🗳️", "Les joueurs votent pour l'intrus", "votes"],
+  },
+  quiz: {
+    question: ["❓", "Les joueurs répondent", "answers"],
+  },
+  repliques: {
+    answer: ["🃏", "Les joueurs écrivent leur réplique", "answers"],
+    vote: ["🗳️", "Les joueurs votent pour la meilleure", "votes"],
+  },
+};
+
+function renderMaster(room) {
+  showScreen("screen-master");
+  const g = room.game;
+  const players = room.players || {};
+  const ids = Object.keys(players);
+  const [emoji, title, field] = MASTER_PHASES[g.name][g.phase];
+  const done = g[field] || {};
+  const waiting = ids.filter((id) => !done[id]);
+
+  $("master-emoji").textContent = emoji;
+  $("master-title").textContent = title;
+  $("master-progress").textContent = (ids.length - waiting.length) + " / " + ids.length;
+  $("master-waiting").textContent = waiting.length
+    ? "En attente de : " + waiting.map((id) => players[id].name).join(", ")
+    : "Tout le monde a répondu, ça continue…";
+  fillScoreList("master-scores", players);
 }
 
 function roundKey(room) {
@@ -518,11 +570,12 @@ function renderLobby(room) {
     document.querySelector('.game-choice[data-game="quiz"]').disabled = n < 2;
     document.querySelector('.game-choice[data-game="repliques"]').disabled = n < 3;
     document.querySelector('.game-choice[data-game="loup"]').disabled = n < 4;
-    $("lobby-hint").textContent =
+    // Les minimums comptent les joueurs connectés : l'hôte n'en fait pas partie.
+    $("lobby-hint").textContent = "🎬 Tu es le maître du jeu, tu ne joues pas. " + (
       (n < 2) ? "En attente de joueurs... (min. 2 pour le Quiz, 3 pour L'Intrus/Répliques, 4 pour le Loup-Garou)"
       : (n < 3) ? "Le Quiz est jouable ! (Intrus/Répliques : 3 joueurs, Loup-Garou : 4)"
       : (n < 4) ? "Il ne manque plus qu'un joueur pour le Loup-Garou 🐺"
-      : "Tous les jeux sont disponibles 🎉";
+      : "Tous les jeux sont disponibles 🎉");
   } else {
     hide($("game-menu")); show($("lobby-wait"));
   }
@@ -802,7 +855,9 @@ function renderQuizReveal(room) {
   const q = g.questions[g.qIndex];
   $("quiz-answer").textContent = q.options[q.correct];
   const pts = (g.lastPoints && g.lastPoints[myId]) || 0;
-  $("quiz-points").textContent = pts > 0 ? "✅ +" + pts + " points !" : "❌ Pas de points cette fois.";
+  $("quiz-points").textContent = !(room.players || {})[myId]
+    ? "Voici ce que les joueurs ont marqué :"   // maître du jeu : il ne score pas
+    : pts > 0 ? "✅ +" + pts + " points !" : "❌ Pas de points cette fois.";
   fillScoreList("quiz-scores", room.players || {}, g.lastPoints);
   const last = g.qIndex + 1 >= g.questions.length;
   $("btn-quiz-next").textContent = last ? "Voir le classement final" : "Question suivante";
@@ -872,16 +927,21 @@ function computeQuizReveal(room) {
 
 // Met à jour le compte à rebours affiché (appelé 4x/seconde)
 function tickTimer() {
-  const t = $("quiz-timer");
   const g = currentRoom && currentRoom.game;
-  const onQuiz = g && g.name === "quiz" && g.phase === "question" && g.timeLimit > 0
-    && !$("screen-quiz").classList.contains("hidden");
-  if (!onQuiz) { hide(t); return; }
-  let remaining = g.timeLimit - (Date.now() - g.questionStart) / 1000;
-  remaining = Math.max(0, Math.min(g.timeLimit, remaining));
-  t.textContent = "⏱️ " + Math.ceil(remaining) + "s";
-  t.classList.toggle("urgent", remaining <= 5);
-  show(t);
+  const live = g && g.name === "quiz" && g.phase === "question" && g.timeLimit > 0;
+  let remaining = 0;
+  if (live) {
+    remaining = g.timeLimit - (Date.now() - g.questionStart) / 1000;
+    remaining = Math.max(0, Math.min(g.timeLimit, remaining));
+  }
+  // Le chrono s'affiche sur l'écran du joueur comme sur celui du maître du jeu.
+  [["quiz-timer", "screen-quiz"], ["master-timer", "screen-master"]].forEach(([tId, sId]) => {
+    const t = $(tId);
+    if (!live || $(sId).classList.contains("hidden")) { hide(t); return; }
+    t.textContent = "⏱️ " + Math.ceil(remaining) + "s";
+    t.classList.toggle("urgent", remaining <= 5);
+    show(t);
+  });
 }
 
 function nextQuizStep() {
@@ -1078,8 +1138,9 @@ function renderLoup(room) {
   const ids = Object.keys(players);
   const roles = g.roles || {};
   const alive = g.alive || {};
+  const amPlayer = !!players[myId];      // l'hôte regarde sans jouer
   const myRole = roles[myId];
-  const amAlive = alive[myId] !== false;
+  const amAlive = amPlayer && alive[myId] !== false;
   const aliveIds = ids.filter((id) => alive[id] !== false);
   const wolfIds = ids.filter((id) => roles[id] === "loup");
 
@@ -1118,14 +1179,22 @@ function renderLoup(room) {
 
   switch (g.phase) {
     case "roleReveal":
-      E.emoji.textContent = LOUP_ROLES[myRole].emoji;
-      E.title.textContent = "Ton rôle secret";
-      show(E.roleBox); E.roleBox.textContent = LOUP_ROLES[myRole].label;
-      E.roleBox.classList.toggle("is-intrus", myRole === "loup");
-      E.text.textContent = LOUP_ROLES[myRole].desc;
-      if (myRole === "loup" && wolfIds.length > 1) {
-        show(E.mates);
-        E.mates.textContent = "🐺 Tes complices : " + wolfIds.filter((id) => id !== myId).map((id) => players[id].name).join(", ");
+      if (amPlayer) {
+        E.emoji.textContent = LOUP_ROLES[myRole].emoji;
+        E.title.textContent = "Ton rôle secret";
+        show(E.roleBox); E.roleBox.textContent = LOUP_ROLES[myRole].label;
+        E.roleBox.classList.toggle("is-intrus", myRole === "loup");
+        E.text.textContent = LOUP_ROLES[myRole].desc;
+        if (myRole === "loup" && wolfIds.length > 1) {
+          show(E.mates);
+          E.mates.textContent = "🐺 Tes complices : " + wolfIds.filter((id) => id !== myId).map((id) => players[id].name).join(", ");
+        }
+      } else {
+        // Maître du jeu : pas de rôle, et surtout aucun secret à l'écran.
+        E.emoji.textContent = "🎭";
+        E.title.textContent = "Rôles distribués";
+        E.text.textContent = "Chaque joueur découvre son rôle sur son téléphone.";
+        showAlive();
       }
       hostBtn("Commencer la nuit 🌙", () => roomRef.update({ "game/phase": "nightWolves", "game/wolfVotes": null }));
       break;
@@ -1193,8 +1262,13 @@ function renderLoup(room) {
           E.text.textContent = "Vote pour éliminer un suspect :";
           pickButtons(aliveIds.filter((id) => id !== myId), dayVotePick);
         }
-      } else {
+      } else if (amPlayer) {
         E.text.textContent = "Tu es mort... 👻"; waitMsg("Observe le village en silence.");
+      } else {
+        const dv = g.dayVotes || {};
+        E.text.textContent = "Le village vote.";
+        showAlive();
+        waitMsg("Votes reçus : " + Object.keys(dv).length + "/" + aliveIds.length);
       }
       break;
 

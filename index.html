@@ -317,6 +317,22 @@
       </div>
     </section>
 
+    <!-- Écran de l'hôte pendant que les joueurs jouent (il ne joue pas) -->
+    <section id="screen-master" class="screen hidden">
+      <div class="card center">
+        <div class="quiz-topline">
+          <p class="muted small">🎬 Maître du jeu</p>
+          <span id="master-timer" class="timer hidden">⏱️ --</span>
+        </div>
+        <div id="master-emoji" class="reveal-emoji"></div>
+        <h2 id="master-title"></h2>
+        <div id="master-progress" class="secret-word"></div>
+        <p id="master-waiting" class="muted"></p>
+        <h3>🏆 Classement</h3>
+        <ul id="master-scores" class="players-list"></ul>
+      </div>
+    </section>
+
     <!-- Phase : Fin du quiz / répliques -->
     <section id="screen-final" class="screen hidden">
       <div class="card center">
