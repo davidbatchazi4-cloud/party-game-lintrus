@@ -193,6 +193,7 @@ function inviteMessage(code) {
 // rejoindre une partie précise : proposer d'en créer une n'aurait pas de sens.
 function setJoinOnly(on) {
   (on ? hide : show)($("btn-create"));
+  (on ? hide : show)($("home-create-note"));
   (on ? hide : show)($("home-or"));
   (on ? show : hide)($("btn-home-back"));
 }
@@ -210,9 +211,7 @@ function randomCode() {
 }
 
 async function createRoom() {
-  const name = readName();
-  if (!name) return;
-  myName = name;
+  // L'hôte ne joue pas : il n'a donc pas besoin de pseudo.
   const code = randomCode();
   await db.ref("rooms/" + code).set({ status: "lobby", hostId: myId, createdAt: Date.now() });
   isHost = true;
